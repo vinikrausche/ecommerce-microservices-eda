@@ -1,0 +1,46 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+
+# Java / Maven
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties.bak
+
+# Spring / build
+*.hprof
+
+# Node / Vite / React
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+.vite/
+**/.vite/
+coverage/
+**/coverage/
+*.tsbuildinfo
+
+# Env files
+.env
+.env.*
