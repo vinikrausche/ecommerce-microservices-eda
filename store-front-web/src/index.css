@@ -1,0 +1,40 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 96%;
+    --card: 36 16% 83%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 21 48% 28%;
+    --primary-foreground: 0 0% 96%;
+    --secondary: 36 16% 83%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 36 8% 70%;
+    --muted-foreground: 30 6% 28%;
+    --accent: 21 48% 28%;
+    --accent-foreground: 0 0% 96%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 96%;
+    --border: 36 10% 55%;
+    --input: 36 10% 55%;
+    --ring: 21 48% 28%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Manrope", "Segoe UI", sans-serif;
+  }
+}

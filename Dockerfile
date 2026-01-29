@@ -5,6 +5,6 @@ RUN ./servico-ecommerce/mvnw -q -f servico-ecommerce/pom.xml  clean package
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /app/demo/target/*.jar app.jar
+COPY --from=build /app/servico-ecommerce/target/*.jar app.jar
 EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
