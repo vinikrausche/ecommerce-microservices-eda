@@ -11,6 +11,9 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: servico-ecommerce:latest
     depends_on:
       - db
@@ -22,6 +25,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ecommerce
       SPRING_DATASOURCE_PASSWORD: ecommerce123
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-admin}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-admin}
 
 volumes:
   pgdata:
