@@ -10,7 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import Skeleton from "@/components/Skeleton"
-import { mockProducts, placeholderImage, type Product } from "@/data/products"
+import { placeholderImage, type Product } from "@/data/products"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { fetchProducts } from "@/services/api"
 
 const formatPrice = (value: number) =>
@@ -49,8 +50,9 @@ const IconUser = () => (
 )
 
 export default function HomePage() {
-  const [products, setProducts] = useState<Product[]>(mockProducts)
+  const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -65,7 +67,11 @@ export default function HomePage() {
           description: item.descricao,
           photos:
             item.fotos && item.fotos.length > 0
-              ? item.fotos
+              ? item.fotos.map((foto) =>
+                  foto.startsWith("data:")
+                    ? foto
+                    : `data:image/webp;base64,${foto}`
+                )
               : [placeholderImage("BOTA")],
           highlights: ["Couro premium", "Conforto imediato", "Acabamento manual"],
           details: [
@@ -75,10 +81,12 @@ export default function HomePage() {
           ],
         }))
         setProducts(mapped)
+        setLoadError(false)
       })
       .catch(() => {
         if (!isMounted) return
-        setProducts(mockProducts)
+        setProducts([])
+        setLoadError(true)
       })
       .finally(() => {
         if (!isMounted) return
@@ -199,6 +207,19 @@ export default function HomePage() {
               Escolha a silhueta ideal para o seu guarda-roupa.
             </p>
           </div>
+
+          {!loading && products.length === 0 ? (
+            <Alert className="border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5]">
+              <AlertTitle className="text-[#F5F5F5]">
+                Nenhum produto encontrado
+              </AlertTitle>
+              <AlertDescription className="text-[#D8CFC4]/80">
+                {loadError
+                  ? "Não foi possível carregar os produtos agora. Tente novamente em instantes."
+                  : "Não há produtos cadastrados ainda."}
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {loading
