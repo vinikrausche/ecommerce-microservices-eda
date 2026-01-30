@@ -17,10 +17,11 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ecommercedb
-      SPRING_DATASOURCE_USERNAME: ecommerce
-      SPRING_DATASOURCE_PASSWORD: ecommerce
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+     environment:
+     SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ecommercedb
+     SPRING_DATASOURCE_USERNAME: ecommerce
+     SPRING_DATASOURCE_PASSWORD: ecommerce
+     SPRING_JPA_HIBERNATE_DDL_AUTO: update
 
 volumes:
   pgdata:
