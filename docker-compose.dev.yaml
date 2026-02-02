@@ -82,6 +82,7 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-admin}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-admin}
+      ASAAS_API_KEY: ${ASAAS_API_KEY}
 
   order-service:
     build:

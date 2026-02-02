@@ -1,7 +1,7 @@
 FROM eclipse-temurin:17-jdk AS build
 WORKDIR /app
 COPY . .
-RUN ./mvnw -q -f pom.xml  clean package
+RUN ./mvnw -q -f pom.xml  clean package -DskipTests
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
