@@ -6,6 +6,8 @@ import org.springframework.web.client.RestClient;
 
 import com.payment.service.dto.CreateChargeRequest;
 import com.payment.service.dto.CreateChargeResponse;
+import com.payment.service.dto.CreateCustomerRequest;
+import com.payment.service.dto.CreateCustomerResponse;
 
 @Component
 public class AsaasClient {
@@ -22,5 +24,13 @@ public class AsaasClient {
         .body(request)
         .retrieve()
         .toEntity(CreateChargeResponse.class);
+    }
+
+    public final ResponseEntity<CreateCustomerResponse> createCustomer(CreateCustomerRequest request) {
+        return asaas.post()
+        .uri("/v3/customers")
+        .body(request)
+        .retrieve()
+        .toEntity(CreateCustomerResponse.class);
     }
 }

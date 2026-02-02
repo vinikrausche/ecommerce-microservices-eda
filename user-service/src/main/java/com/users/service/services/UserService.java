@@ -1,10 +1,13 @@
 package com.users.service.services;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.ecommerce.events.CustomerCreationRequestedEvent;
 import com.users.service.dto.CreateUserRequest;
 import com.users.service.dto.UpdateUserRequest;
 import com.users.service.dto.UserResponse;
@@ -15,9 +18,14 @@ import com.users.service.repository.UserRepository;
 public class UserService {
 
     private final UserRepository repository;
+    private final KafkaTemplate<String, CustomerCreationRequestedEvent> kafkaTemplate;
 
-    UserService(UserRepository repository) {
+    @Value("${app.kafka.topics.creation-customer-requested}")
+    private String creationCustomerTopic;
+
+    UserService(UserRepository repository, KafkaTemplate<String, CustomerCreationRequestedEvent> kafkaTemplate) {
         this.repository = repository;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public UserResponse create(CreateUserRequest request) {
@@ -32,7 +40,9 @@ public class UserService {
         user.setState(request.state());
         user.setPassword(request.password());
 
-        return toResponse(repository.save(user));
+        User saved = repository.save(user);
+        sendCustomerCreationEvent(saved);
+        return toResponse(saved);
     }
 
     public UserResponse getById(Long id) {
@@ -89,5 +99,21 @@ public class UserService {
                 user.getPhone(),
                 user.getState()
         );
+    }
+
+    private void sendCustomerCreationEvent(User user) {
+        CustomerCreationRequestedEvent event = new CustomerCreationRequestedEvent(
+                user.getId(),
+                user.getName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getNationalId(),
+                user.getPhone(),
+                user.getAddress(),
+                user.getZipcode(),
+                user.getState()
+        );
+        String key = user.getId() == null ? user.getEmail() : user.getId().toString();
+        kafkaTemplate.send(creationCustomerTopic, key, event);
     }
 }
