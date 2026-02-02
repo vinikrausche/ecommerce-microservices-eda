@@ -17,6 +17,10 @@ public class AsaasClient {
     }
 
     public final ResponseEntity<CreateChargeResponse> createCharge(CreateChargeRequest request) {
-        return asaas.postForEntity("/v3/payments", request, CreateChargeResponse.class);
+        return asaas.post()
+        .uri("/v3/payments")
+        .body(request)
+        .retrieve()
+        .toEntity(CreateChargeResponse.class);
     }
 }

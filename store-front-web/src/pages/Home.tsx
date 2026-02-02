@@ -1,6 +1,15 @@
-import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Card,
   CardContent,
@@ -13,6 +22,7 @@ import Skeleton from "@/components/Skeleton"
 import { placeholderImage, type Product } from "@/data/products"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { fetchProducts } from "@/services/api"
+import { loginUser } from "@/services/users"
 
 const formatPrice = (value: number) =>
   new Intl.NumberFormat("pt-BR", {
@@ -53,6 +63,13 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [loginEmail, setLoginEmail] = useState("")
+  const [loginPassword, setLoginPassword] = useState("")
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
 
   useEffect(() => {
     let isMounted = true
@@ -97,6 +114,32 @@ export default function HomePage() {
     }
   }, [])
 
+  useEffect(() => {
+    const state = location.state as
+      | { openLogin?: boolean; prefillEmail?: string }
+      | null
+    if (state?.openLogin) {
+      setLoginEmail(state.prefillEmail ?? "")
+      setIsLoginOpen(true)
+      navigate(".", { replace: true, state: null })
+    }
+  }, [location.state, navigate])
+
+  const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setLoginLoading(true)
+    setLoginError(null)
+    try {
+      await loginUser({ email: loginEmail, password: loginPassword })
+      setIsLoginOpen(false)
+      setLoginPassword("")
+    } catch (err) {
+      setLoginError("Nao foi possivel entrar. Verifique seus dados.")
+    } finally {
+      setLoginLoading(false)
+    }
+  }
+
   const headerSubtitle = useMemo(
     () =>
       loading
@@ -127,6 +170,7 @@ export default function HomePage() {
             <Button
               variant="ghost"
               className="h-10 border border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
+              onClick={() => setIsLoginOpen(true)}
             >
               <IconUser />
               Entrar
@@ -305,6 +349,62 @@ export default function HomePage() {
           </div>
         </section>
       </main>
+
+      <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Entrar na sua conta</DialogTitle>
+            <DialogDescription>
+              Use seu email e senha para continuar.
+            </DialogDescription>
+          </DialogHeader>
+          <form className="mt-6 space-y-4" onSubmit={handleLoginSubmit}>
+            <div className="space-y-2">
+              <Label htmlFor="login-email">Email</Label>
+              <Input
+                id="login-email"
+                type="email"
+                value={loginEmail}
+                onChange={(event) => setLoginEmail(event.target.value)}
+                placeholder="voce@email.com"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="login-password">Senha</Label>
+              <Input
+                id="login-password"
+                type="password"
+                value={loginPassword}
+                onChange={(event) => setLoginPassword(event.target.value)}
+                placeholder="Sua senha"
+                required
+              />
+            </div>
+            {loginError ? (
+              <div className="rounded-lg border border-[#6B3E26] bg-[#1c1511] px-4 py-3 text-sm text-[#D8CFC4]">
+                {loginError}
+              </div>
+            ) : null}
+            <div className="flex flex-col gap-3">
+              <Button
+                type="submit"
+                className="bg-[#6B3E26] text-[#F5F5F5] hover:bg-[#7b4a30]"
+                disabled={loginLoading}
+              >
+                {loginLoading ? "Entrando..." : "Entrar"}
+              </Button>
+              <Link
+                to="/cadastro"
+                className="text-center text-sm text-[#D8CFC4]/80 underline-offset-4 hover:text-[#F5F5F5] hover:underline"
+                onClick={() => setIsLoginOpen(false)}
+              >
+                Nao tem conta? Entao cadastre-se
+              </Link>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
