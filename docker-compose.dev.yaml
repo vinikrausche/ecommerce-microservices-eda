@@ -126,8 +126,7 @@ services:
       SPRING_DATASOURCE_USERNAME: payment
       SPRING_DATASOURCE_PASSWORD: payment123
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      ASAAS_API_KEY: ${ASAAS_API_KEY}
-      ASAAS_BASE_URL: ${ASAAS_BASE_URL}
+   
 
   notification-service:
     build:

@@ -51,6 +51,12 @@ public class UserService {
         return toResponse(user);
     }
 
+    public void delete(Long id) {
+        User user = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        repository.delete(user);
+    }
+
     @Transactional
     public UserResponse update(Long id, UpdateUserRequest request) {
         User user = repository.findById(id)

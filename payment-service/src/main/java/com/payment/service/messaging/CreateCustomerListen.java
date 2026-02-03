@@ -27,11 +27,13 @@ public class CreateCustomerListen {
             log.warn("Skipping Asaas customer creation because userId is null");
             return;
         }
+        log.info("Received customer creation request for user {} ({})", event.userId(), event.email());
         if (asaasCustomerService.existsByUserId(event.userId())) {
             log.info("Asaas customer already exists for user {}", event.userId());
             return;
         }
         CreateCustomerRequest request = toRequest(event);
+        log.info("Calling Asaas to create customer for user {}", event.userId());
         var response = asaasClient.createCustomer(request);
         CreateCustomerResponse body = response.getBody();
         if (response.getStatusCode().is2xxSuccessful() && body != null && body.id() != null) {
@@ -43,7 +45,7 @@ public class CreateCustomerListen {
             }
             log.info("Asaas customer created for user {}: {}", event.userId(), body.id());
         } else {
-            log.info("Asaas customer created for user {} with status {}", event.userId(), response.getStatusCode());
+            log.warn("Asaas customer creation failed for user {} with status {}", event.userId(), response.getStatusCode());
         }
     }
 

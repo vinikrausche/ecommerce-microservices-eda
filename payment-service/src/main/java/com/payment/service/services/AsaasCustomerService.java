@@ -1,5 +1,7 @@
 package com.payment.service.services;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.ecommerce.events.CustomerCreationRequestedEvent;
@@ -17,6 +19,10 @@ public class AsaasCustomerService {
 
     public boolean existsByUserId(Long userId) {
         return repository.existsByUserId(userId);
+    }
+
+    public List<AsaasCustomer> findAll() {
+        return repository.findAll();
     }
 
     public AsaasCustomer saveFrom(CustomerCreationRequestedEvent event, CreateCustomerResponse response) {
