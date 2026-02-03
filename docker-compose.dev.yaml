@@ -59,6 +59,8 @@ services:
       - payment_pgdata:/var/lib/postgresql/data
 
   user-service:
+    env_file:
+        - user-service/.env.dev
     build:
       context: ./user-service
       dockerfile: Dockerfile

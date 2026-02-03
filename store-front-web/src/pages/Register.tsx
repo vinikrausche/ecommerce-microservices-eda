@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createUser } from "@/services/users"
+import { useToast } from "@/hooks/use-toast"
 
 type RegisterFormState = {
   name: string
@@ -32,8 +33,8 @@ const initialState: RegisterFormState = {
 export default function RegisterPage() {
   const [form, setForm] = useState<RegisterFormState>(initialState)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const { toast } = useToast()
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target
@@ -43,7 +44,6 @@ export default function RegisterPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setLoading(true)
-    setError(null)
     try {
       const payload = {
         ...form,
@@ -51,12 +51,20 @@ export default function RegisterPage() {
       }
       const created = await createUser(payload)
       setForm(initialState)
+      toast({
+        title: "Cadastro realizado",
+        description: "Agora voce pode fazer login com seu email.",
+      })
       navigate("/", {
         replace: true,
         state: { openLogin: true, prefillEmail: created.email },
       })
     } catch (err) {
-      setError("Nao foi possivel cadastrar. Tente novamente.")
+      toast({
+        variant: "destructive",
+        title: "Erro ao cadastrar",
+        description: "Nao foi possivel cadastrar. Tente novamente.",
+      })
     } finally {
       setLoading(false)
     }
@@ -191,12 +199,6 @@ export default function RegisterPage() {
                 required
               />
             </div>
-
-            {error ? (
-              <div className="rounded-lg border border-[#6B3E26] bg-[#1c1511] px-4 py-3 text-sm text-[#D8CFC4]">
-                {error}
-              </div>
-            ) : null}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <Button
