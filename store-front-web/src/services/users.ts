@@ -29,6 +29,8 @@ export type LoginPayload = {
   password: string
 }
 
+const TOKEN_STORAGE_KEY = "authToken"
+
 export const userApi = axios.create({
   baseURL: "http://localhost:8081/api/v1",
 })
@@ -38,6 +40,22 @@ export async function createUser(payload: CreateUserPayload): Promise<UserRespon
   return data
 }
 
-export async function loginUser(payload: LoginPayload): Promise<void> {
-  await userApi.post("/login", payload)
+export async function loginUser(payload: LoginPayload): Promise<string> {
+  const { data } = await userApi.post<string>("/login", payload)
+  return data
+}
+
+export function getStoredToken(): string | null {
+  if (typeof window === "undefined") return null
+  return window.localStorage.getItem(TOKEN_STORAGE_KEY)
+}
+
+export function storeToken(token: string): void {
+  if (typeof window === "undefined") return
+  window.localStorage.setItem(TOKEN_STORAGE_KEY, token)
+}
+
+export function clearStoredToken(): void {
+  if (typeof window === "undefined") return
+  window.localStorage.removeItem(TOKEN_STORAGE_KEY)
 }

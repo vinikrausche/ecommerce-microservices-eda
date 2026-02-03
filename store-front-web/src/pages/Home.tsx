@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,13 +22,25 @@ import Skeleton from "@/components/Skeleton"
 import { placeholderImage, type Product } from "@/data/products"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { fetchProducts } from "@/services/api"
-import { loginUser } from "@/services/users"
+import {
+  clearStoredToken,
+  getStoredToken,
+  loginUser,
+  storeToken,
+} from "@/services/users"
 
 const formatPrice = (value: number) =>
   new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
   }).format(value)
+
+const normalizePhoto = (photo: string) => {
+  if (photo.startsWith("data:") || photo.startsWith("http")) {
+    return photo
+  }
+  return `data:image/webp;base64,${photo}`
+}
 
 const IconCart = () => (
   <svg
@@ -68,6 +80,11 @@ export default function HomePage() {
   const [loginPassword, setLoginPassword] = useState("")
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
+  const [authToken, setAuthToken] = useState<string | null>(() =>
+    getStoredToken()
+  )
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -84,11 +101,7 @@ export default function HomePage() {
           description: item.descricao,
           photos:
             item.fotos && item.fotos.length > 0
-              ? item.fotos.map((foto) =>
-                  foto.startsWith("data:")
-                    ? foto
-                    : `data:image/webp;base64,${foto}`
-                )
+              ? item.fotos.map(normalizePhoto)
               : [placeholderImage("BOTA")],
           highlights: ["Couro premium", "Conforto imediato", "Acabamento manual"],
           details: [
@@ -125,12 +138,31 @@ export default function HomePage() {
     }
   }, [location.state, navigate])
 
+  useEffect(() => {
+    if (!isUserMenuOpen) return
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!userMenuRef.current) return
+      if (!userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isUserMenuOpen])
+
   const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setLoginLoading(true)
     setLoginError(null)
     try {
-      await loginUser({ email: loginEmail, password: loginPassword })
+      const token = await loginUser({
+        email: loginEmail,
+        password: loginPassword,
+      })
+      storeToken(token)
+      setAuthToken(token)
       setIsLoginOpen(false)
       setLoginPassword("")
     } catch (err) {
@@ -138,6 +170,12 @@ export default function HomePage() {
     } finally {
       setLoginLoading(false)
     }
+  }
+
+  const handleLogout = () => {
+    clearStoredToken()
+    setAuthToken(null)
+    setIsUserMenuOpen(false)
   }
 
   const headerSubtitle = useMemo(
@@ -167,14 +205,40 @@ export default function HomePage() {
           </div>
         </div>
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              className="h-10 border border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
-              onClick={() => setIsLoginOpen(true)}
-            >
-              <IconUser />
-              Entrar
-            </Button>
+            {authToken ? (
+              <div className="relative" ref={userMenuRef}>
+                <Button
+                  variant="ghost"
+                  className="h-10 border border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
+                  onClick={() => setIsUserMenuOpen((open) => !open)}
+                  aria-haspopup="menu"
+                  aria-expanded={isUserMenuOpen}
+                  aria-label="Conta"
+                >
+                  <IconUser />
+                </Button>
+                {isUserMenuOpen ? (
+                  <div className="absolute right-0 mt-2 w-40 rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] p-2 text-sm shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+                    <button
+                      type="button"
+                      className="w-full rounded-lg px-3 py-2 text-left text-[#F5F5F5] hover:bg-[#2a2a2a]"
+                      onClick={handleLogout}
+                    >
+                      Sair
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                className="h-10 border border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
+                onClick={() => setIsLoginOpen(true)}
+              >
+                <IconUser />
+                Entrar
+              </Button>
+            )}
             <Button
               variant="ghost"
               className="relative h-10 border border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
@@ -339,7 +403,7 @@ export default function HomePage() {
                       <Button
                         asChild
                         variant="outline"
-                        className="border-[#6B3E26] text-[#121212] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
+                        className="border-[#6B3E26] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
                       >
                         <Link to={`/produto/${product.id}`}>Ver produto</Link>
                       </Button>

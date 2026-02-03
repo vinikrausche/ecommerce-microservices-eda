@@ -1,16 +1,24 @@
-import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useEffect, useRef, useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
 import Skeleton from "@/components/Skeleton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { mockProducts, placeholderImage, type Product } from "@/data/products"
 import { fetchProductById } from "@/services/api"
+import { clearStoredToken, getStoredToken } from "@/services/users"
 
 const formatPrice = (value: number) =>
   new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
   }).format(value)
+
+const normalizePhoto = (photo: string) => {
+  if (photo.startsWith("data:") || photo.startsWith("http")) {
+    return photo
+  }
+  return `data:image/webp;base64,${photo}`
+}
 
 const IconCart = () => (
   <svg
@@ -43,8 +51,14 @@ const IconUser = () => (
 
 export default function ProductPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [product, setProduct] = useState<Product>(mockProducts[0])
   const [loading, setLoading] = useState(true)
+  const [authToken, setAuthToken] = useState<string | null>(() =>
+    getStoredToken()
+  )
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -60,7 +74,7 @@ export default function ProductPage() {
           description: item.descricao,
           photos:
             item.fotos && item.fotos.length > 0
-              ? item.fotos
+              ? item.fotos.map(normalizePhoto)
               : [placeholderImage("BOTA")],
           highlights: ["Couro premium", "Conforto imediato", "Acabamento manual"],
           details: [
@@ -83,6 +97,30 @@ export default function ProductPage() {
     }
   }, [id])
 
+  useEffect(() => {
+    if (!isUserMenuOpen) return
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!userMenuRef.current) return
+      if (!userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isUserMenuOpen])
+
+  const handleLogout = () => {
+    clearStoredToken()
+    setAuthToken(null)
+    setIsUserMenuOpen(false)
+  }
+
+  const handleOpenLogin = () => {
+    navigate("/", { state: { openLogin: true } })
+  }
+
   return (
     <div className="min-h-screen bg-[#121212] text-[#F5F5F5]">
       <header className="border-b border-[#2a2a2a] bg-[#121212]">
@@ -101,13 +139,40 @@ export default function ProductPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              className="h-10 border border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
-            >
-              <IconUser />
-              Entrar
-            </Button>
+            {authToken ? (
+              <div className="relative" ref={userMenuRef}>
+                <Button
+                  variant="ghost"
+                  className="h-10 border border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
+                  onClick={() => setIsUserMenuOpen((open) => !open)}
+                  aria-haspopup="menu"
+                  aria-expanded={isUserMenuOpen}
+                  aria-label="Conta"
+                >
+                  <IconUser />
+                </Button>
+                {isUserMenuOpen ? (
+                  <div className="absolute right-0 mt-2 w-40 rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] p-2 text-sm shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+                    <button
+                      type="button"
+                      className="w-full rounded-lg px-3 py-2 text-left text-[#F5F5F5] hover:bg-[#2a2a2a]"
+                      onClick={handleLogout}
+                    >
+                      Sair
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                className="h-10 border border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
+                onClick={handleOpenLogin}
+              >
+                <IconUser />
+                Entrar
+              </Button>
+            )}
             <Button
               variant="ghost"
               className="relative h-10 border border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
