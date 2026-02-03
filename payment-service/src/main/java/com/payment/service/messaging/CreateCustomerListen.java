@@ -2,11 +2,13 @@ package com.payment.service.messaging;
 
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import com.ecommerce.events.CustomerCreationRequestedEvent;
 import com.payment.service.client.AsaasClient;
 import com.payment.service.dto.CreateCustomerRequest;
 import com.payment.service.dto.CreateCustomerResponse;
+import com.payment.service.services.AsaasCustomerService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,13 +19,28 @@ import lombok.extern.slf4j.Slf4j;
 public class CreateCustomerListen {
 
     private final AsaasClient asaasClient;
+    private final AsaasCustomerService asaasCustomerService;
 
     @KafkaListener(topics = "${app.kafka.topics.creation-customer-requested}")
     public void handle(CustomerCreationRequestedEvent event) {
+        if (event.userId() == null) {
+            log.warn("Skipping Asaas customer creation because userId is null");
+            return;
+        }
+        if (asaasCustomerService.existsByUserId(event.userId())) {
+            log.info("Asaas customer already exists for user {}", event.userId());
+            return;
+        }
         CreateCustomerRequest request = toRequest(event);
         var response = asaasClient.createCustomer(request);
         CreateCustomerResponse body = response.getBody();
-        if (body != null) {
+        if (response.getStatusCode().is2xxSuccessful() && body != null && body.id() != null) {
+            try {
+                asaasCustomerService.saveFrom(event, body);
+            } catch (DataIntegrityViolationException ex) {
+                log.info("Asaas customer already persisted for user {}", event.userId());
+                return;
+            }
             log.info("Asaas customer created for user {}: {}", event.userId(), body.id());
         } else {
             log.info("Asaas customer created for user {} with status {}", event.userId(), response.getStatusCode());

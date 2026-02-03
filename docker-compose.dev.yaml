@@ -47,6 +47,17 @@ services:
     volumes:
       - store_pgdata:/var/lib/postgresql/data
 
+  payment-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: paymentdb
+      POSTGRES_USER: payment
+      POSTGRES_PASSWORD: payment123
+    ports:
+      - "5434:5432"
+    volumes:
+      - payment_pgdata:/var/lib/postgresql/data
+
   user-service:
     build:
       context: ./user-service
@@ -82,7 +93,6 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-admin}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-admin}
-      ASAAS_API_KEY: ${ASAAS_API_KEY}
 
   order-service:
     build:
@@ -98,17 +108,26 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
 
   payment-service:
+    env_file:
+      - payment-service/.env.dev
     build:
       context: ./payment-service
       dockerfile: Dockerfile
     image: payment-service:latest
     depends_on:
       - kafka
+      - payment-db
     ports:
       - "8084:8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://payment-db:5432/paymentdb
+      SPRING_DATASOURCE_USERNAME: payment
+      SPRING_DATASOURCE_PASSWORD: payment123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      ASAAS_API_KEY: ${ASAAS_API_KEY}
+      ASAAS_BASE_URL: ${ASAAS_BASE_URL}
 
   notification-service:
     build:
@@ -126,3 +145,4 @@ services:
 volumes:
   user_pgdata:
   store_pgdata:
+  payment_pgdata:
