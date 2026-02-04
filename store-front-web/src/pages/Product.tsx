@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import Skeleton from "@/components/Skeleton"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { mockProducts, placeholderImage, type Product } from "@/data/products"
-import { fetchProductById } from "@/services/api"
+import { placeholderImage } from "@/data/products"
+import { fetchProductById, type ApiProduct } from "@/services/api"
 import { clearStoredToken, getStoredToken } from "@/services/users"
 
 const formatPrice = (value: number) =>
@@ -52,8 +51,9 @@ const IconUser = () => (
 export default function ProductPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [product, setProduct] = useState<Product>(mockProducts[0])
+  const [product, setProduct] = useState<ApiProduct | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [authToken, setAuthToken] = useState<string | null>(() =>
     getStoredToken()
   )
@@ -63,30 +63,17 @@ export default function ProductPage() {
   useEffect(() => {
     if (!id) return
     let isMounted = true
+    setLoading(true)
+    setLoadError(false)
+    setProduct(null)
     fetchProductById(id)
       .then((item) => {
         if (!isMounted) return
-        setProduct({
-          id: String(item.id),
-          title: item.titulo,
-          price: formatPrice(item.preco),
-          quantity: `${item.quantidade} unidades`,
-          description: item.descricao,
-          photos:
-            item.fotos && item.fotos.length > 0
-              ? item.fotos.map(normalizePhoto)
-              : [placeholderImage("BOTA")],
-          highlights: ["Couro premium", "Conforto imediato", "Acabamento manual"],
-          details: [
-            { label: "Cor", value: "Marrom café" },
-            { label: "Solado", value: "Emborrachado antiderrapante" },
-            { label: "Estilo", value: "Masculino premium" },
-          ],
-        })
+        setProduct(item)
       })
       .catch(() => {
         if (!isMounted) return
-        setProduct(mockProducts.find((item) => item.id === id) ?? mockProducts[0])
+        setLoadError(true)
       })
       .finally(() => {
         if (!isMounted) return
@@ -120,6 +107,12 @@ export default function ProductPage() {
   const handleOpenLogin = () => {
     navigate("/", { state: { openLogin: true } })
   }
+
+  const photos =
+    product?.fotos && product.fotos.length > 0
+      ? product.fotos.map(normalizePhoto)
+      : [placeholderImage("BOTA")]
+  const thumbnails = photos.slice(1)
 
   return (
     <div className="min-h-screen bg-[#121212] text-[#F5F5F5]">
@@ -194,33 +187,37 @@ export default function ProductPage() {
               <Skeleton className="h-[420px] w-full" />
             ) : (
               <img
-                src={product.photos[0]}
-                alt={product.title}
+                src={photos[0]}
+                alt={product?.titulo ?? "Produto"}
                 className="h-[420px] w-full object-cover"
               />
             )}
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            {loading
-              ? Array.from({ length: 3 }).map((_, index) => (
-                  <Skeleton
-                    key={`thumb-${index}`}
-                    className="h-32 w-full rounded-2xl border border-[#2a2a2a]"
+          {loading ? (
+            <div className="grid grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton
+                  key={`thumb-${index}`}
+                  className="h-32 w-full rounded-2xl border border-[#2a2a2a]"
+                />
+              ))}
+            </div>
+          ) : thumbnails.length > 0 ? (
+            <div className="grid grid-cols-3 gap-4">
+              {thumbnails.map((photo, index) => (
+                <div
+                  key={`${product?.id ?? "produto"}-${index}`}
+                  className="overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#1a1a1a]"
+                >
+                  <img
+                    src={photo}
+                    alt={`${product?.titulo ?? "Produto"} - ${index + 2}`}
+                    className="h-32 w-full object-cover"
                   />
-                ))
-              : product.photos.map((photo, index) => (
-                  <div
-                    key={`${product.id}-${index}`}
-                    className="overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#1a1a1a]"
-                  >
-                    <img
-                      src={photo}
-                      alt={`${product.title} - ${index + 1}`}
-                      className="h-32 w-full object-cover"
-                    />
-                  </div>
-                ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </section>
 
         <section className="space-y-6">
@@ -234,14 +231,20 @@ export default function ProductPage() {
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-5/6" />
               </div>
+            ) : loadError ? (
+              <p className="text-sm text-[#D8CFC4]/80">
+                Nao foi possivel carregar este produto.
+              </p>
             ) : (
-              <h1 className="font-['Playfair_Display'] text-4xl">
-                {product.title}
-              </h1>
+              <>
+                <h1 className="font-['Playfair_Display'] text-4xl">
+                  {product?.titulo}
+                </h1>
+                <p className="text-sm text-[#D8CFC4]/80">
+                  {product?.descricao}
+                </p>
+              </>
             )}
-            <p className="text-sm text-[#D8CFC4]/80">
-              {loading ? "Carregando descrição..." : product.description}
-            </p>
           </div>
 
           <div className="rounded-2xl border border-[#2a2a2a] bg-[#1a1a1a] p-6">
@@ -255,72 +258,22 @@ export default function ProductPage() {
                 ) : (
                   <>
                     <p className="text-3xl font-semibold text-[#F5F5F5]">
-                      {product.price}
+                      {product ? formatPrice(product.preco) : "--"}
                     </p>
                     <p className="text-xs text-[#D8CFC4]/80">
-                      {product.quantity} em estoque
+                      {product ? `${product.quantidade} em estoque` : ""}
                     </p>
                   </>
                 )}
               </div>
-              <span className="rounded-full bg-[#6B3E26] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[#F5F5F5]">
-                premium
-              </span>
             </div>
             <Button
               className="mt-6 w-full bg-[#6B3E26] text-[#F5F5F5] hover:bg-[#7b4a30]"
-              disabled={loading}
+              disabled={loading || loadError}
             >
               Comprar agora
             </Button>
           </div>
-
-          <Card className="border-[#c3b8aa] bg-[#D8CFC4] text-[#121212]">
-            <CardHeader>
-              <CardTitle className="font-['Playfair_Display']">
-                Destaques do produto
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              {loading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-2/3" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Skeleton className="h-16 w-full rounded-xl" />
-                    <Skeleton className="h-16 w-full rounded-xl" />
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <ul className="space-y-2">
-                    {product.highlights.map((highlight) => (
-                      <li key={highlight} className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-[#6B3E26]" />
-                        <span>{highlight}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {product.details.map((detail) => (
-                      <div
-                        key={detail.label}
-                        className="rounded-xl border border-[#b7aa9b] bg-[#F5F5F5] p-3"
-                      >
-                        <p className="text-xs uppercase tracking-[0.2em] text-[#6B3E26]">
-                          {detail.label}
-                        </p>
-                        <p className="text-sm font-semibold">
-                          {detail.value}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
         </section>
       </main>
     </div>

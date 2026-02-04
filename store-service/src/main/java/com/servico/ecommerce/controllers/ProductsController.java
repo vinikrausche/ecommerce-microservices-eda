@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 
 
@@ -42,6 +44,13 @@ class ProductsController{
     public ResponseEntity<Product> update(@PathVariable Long id, @Valid  @RequestBody Product data) {    
         return ResponseEntity.ok(productService.update(id, data));
     }
+
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Product> getOne(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.findById(id));
+    }
+    
     
     
 }

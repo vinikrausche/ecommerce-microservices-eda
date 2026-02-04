@@ -40,6 +40,12 @@ public class ProductService {
         return currentProduct;
     }
 
+
+    public Product findById(Long id) {
+        return repo.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Product not found"));
+    }
+
     @Transactional
     public void decreaseQuantity(Long productId, Integer quantity) {
         Product currentProduct = repo.findById(productId)
