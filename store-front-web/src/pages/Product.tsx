@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import Skeleton from "@/components/Skeleton"
 import { Button } from "@/components/ui/button"
 import { placeholderImage } from "@/data/products"
 import { fetchProductById, type ApiProduct } from "@/services/api"
 import { clearStoredToken, getStoredToken } from "@/services/users"
+import { useCart } from "@/hooks/use-cart"
 
 const formatPrice = (value: number) =>
   new Intl.NumberFormat("pt-BR", {
@@ -59,6 +60,7 @@ export default function ProductPage() {
   )
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement | null>(null)
+  const { count: cartCount } = useCart()
 
   useEffect(() => {
     if (!id) return
@@ -167,14 +169,17 @@ export default function ProductPage() {
               </Button>
             )}
             <Button
+              asChild
               variant="ghost"
               className="relative h-10 border border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
             >
-              <IconCart />
-              Carrinho
-              <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#6B3E26] text-[10px] font-semibold text-[#F5F5F5]">
-                1
-              </span>
+              <Link to="/carrinho">
+                <IconCart />
+                Carrinho
+                <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#6B3E26] text-[10px] font-semibold text-[#F5F5F5]">
+                  {cartCount}
+                </span>
+              </Link>
             </Button>
           </div>
         </div>

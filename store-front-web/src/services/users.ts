@@ -30,6 +30,7 @@ export type LoginPayload = {
 }
 
 const TOKEN_STORAGE_KEY = "authToken"
+const USER_ID_STORAGE_KEY = "userId"
 
 export const userApi = axios.create({
   baseURL: "http://localhost:8081/api/v1",
@@ -58,4 +59,22 @@ export function storeToken(token: string): void {
 export function clearStoredToken(): void {
   if (typeof window === "undefined") return
   window.localStorage.removeItem(TOKEN_STORAGE_KEY)
+}
+
+export function storeUserId(id: number): void {
+  if (typeof window === "undefined") return
+  window.localStorage.setItem(USER_ID_STORAGE_KEY, String(id))
+}
+
+export function getStoredUserId(): number | null {
+  if (typeof window === "undefined") return null
+  const value = window.localStorage.getItem(USER_ID_STORAGE_KEY)
+  if (!value) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+export function clearStoredUserId(): void {
+  if (typeof window === "undefined") return
+  window.localStorage.removeItem(USER_ID_STORAGE_KEY)
 }

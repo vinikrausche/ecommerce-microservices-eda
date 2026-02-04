@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { createUser } from "@/services/users"
+import { createUser, storeUserId } from "@/services/users"
 import { useToast } from "@/hooks/use-toast"
 
 type RegisterFormState = {
@@ -50,6 +50,7 @@ export default function RegisterPage() {
         state: form.state.trim().toUpperCase(),
       }
       const created = await createUser(payload)
+      storeUserId(created.id)
       setForm(initialState)
       toast({
         title: "Cadastro realizado",

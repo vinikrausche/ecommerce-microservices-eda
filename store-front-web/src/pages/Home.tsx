@@ -22,6 +22,8 @@ import Skeleton from "@/components/Skeleton"
 import { placeholderImage, type Product } from "@/data/products"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { fetchProducts } from "@/services/api"
+import { useToast } from "@/hooks/use-toast"
+import { useCart } from "@/hooks/use-cart"
 import {
   clearStoredToken,
   getStoredToken,
@@ -83,10 +85,15 @@ export default function HomePage() {
   const [authToken, setAuthToken] = useState<string | null>(() =>
     getStoredToken()
   )
+  const [addingProducts, setAddingProducts] = useState<Record<string, boolean>>(
+    {}
+  )
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
+  const { toast } = useToast()
+  const { count: cartCount, addItem } = useCart()
 
   useEffect(() => {
     let isMounted = true
@@ -178,6 +185,35 @@ export default function HomePage() {
     setIsUserMenuOpen(false)
   }
 
+  const handleAddToCart = async (productId: string) => {
+    const numericId = Number(productId)
+    if (!Number.isFinite(numericId)) {
+      toast({
+        variant: "destructive",
+        title: "Produto invalido",
+        description: "Nao foi possivel adicionar este item ao carrinho.",
+      })
+      return
+    }
+
+    setAddingProducts((prev) => ({ ...prev, [productId]: true }))
+    try {
+      await addItem(numericId)
+      toast({
+        title: "Adicionado ao carrinho",
+        description: "O produto foi incluido no seu carrinho.",
+      })
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Erro ao adicionar",
+        description: "Nao foi possivel adicionar ao carrinho agora.",
+      })
+    } finally {
+      setAddingProducts((prev) => ({ ...prev, [productId]: false }))
+    }
+  }
+
   const headerSubtitle = useMemo(
     () =>
       loading
@@ -240,14 +276,17 @@ export default function HomePage() {
               </Button>
             )}
             <Button
+              asChild
               variant="ghost"
               className="relative h-10 border border-[#2a2a2a] bg-[#1a1a1a] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
             >
-              <IconCart />
-              Carrinho
-              <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#6B3E26] text-[10px] font-semibold text-[#F5F5F5]">
-                2
-              </span>
+              <Link to="/carrinho">
+                <IconCart />
+                Carrinho
+                <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#6B3E26] text-[10px] font-semibold text-[#F5F5F5]">
+                  {cartCount}
+                </span>
+              </Link>
             </Button>
           </div>
         </div>
@@ -355,61 +394,68 @@ export default function HomePage() {
                     </CardFooter>
                   </Card>
                 ))
-              : products.map((product) => (
-                  <Card
-                    key={product.id}
-                    className="border-[#c3b8aa] bg-[#D8CFC4] text-[#121212] shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
-                  >
-                    <CardHeader className="p-0">
-                      <div className="relative overflow-hidden rounded-t-lg">
-                        <img
-                          src={product.photos[0]}
-                          alt={product.title}
-                          className="h-48 w-full object-cover"
-                        />
-                        <span className="absolute left-4 top-4 rounded-full bg-[#121212] px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-[#F5F5F5]">
-                          novo
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4 p-6">
-                      <div className="space-y-2">
-                        <CardTitle className="font-['Playfair_Display']">
-                          {product.title}
-                        </CardTitle>
-                        <CardDescription className="text-xs uppercase tracking-[0.3em] text-[#6B3E26]">
-                          {product.material ?? "Couro premium"}
-                        </CardDescription>
-                        <p className="text-sm text-[#121212]/70">
-                          {product.sole ?? "Solado resistente"} ·{" "}
-                          {product.color ?? "Marrom"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-2xl font-semibold text-[#6B3E26]">
-                          {product.price}
-                        </p>
-                        {product.installment ? (
-                          <p className="text-xs text-[#121212]/70">
-                            {product.installment}
+              : products.map((product) => {
+                  const isAdding = Boolean(addingProducts[product.id])
+                  return (
+                    <Card
+                      key={product.id}
+                      className="border-[#c3b8aa] bg-[#D8CFC4] text-[#121212] shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+                    >
+                      <CardHeader className="p-0">
+                        <div className="relative overflow-hidden rounded-t-lg">
+                          <img
+                            src={product.photos[0]}
+                            alt={product.title}
+                            className="h-48 w-full object-cover"
+                          />
+                          <span className="absolute left-4 top-4 rounded-full bg-[#121212] px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-[#F5F5F5]">
+                            novo
+                          </span>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4 p-6">
+                        <div className="space-y-2">
+                          <CardTitle className="font-['Playfair_Display']">
+                            {product.title}
+                          </CardTitle>
+                          <CardDescription className="text-xs uppercase tracking-[0.3em] text-[#6B3E26]">
+                            {product.material ?? "Couro premium"}
+                          </CardDescription>
+                          <p className="text-sm text-[#121212]/70">
+                            {product.sole ?? "Solado resistente"} ·{" "}
+                            {product.color ?? "Marrom"}
                           </p>
-                        ) : null}
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex items-center justify-between gap-3 px-6 pb-6">
-                      <Button className="w-full bg-[#6B3E26] text-[#F5F5F5] hover:bg-[#7b4a30]">
-                        Adicionar ao carrinho
-                      </Button>
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="border-[#6B3E26] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
-                      >
-                        <Link to={`/produto/${product.id}`}>Ver produto</Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
+                        </div>
+                        <div>
+                          <p className="text-2xl font-semibold text-[#6B3E26]">
+                            {product.price}
+                          </p>
+                          {product.installment ? (
+                            <p className="text-xs text-[#121212]/70">
+                              {product.installment}
+                            </p>
+                          ) : null}
+                        </div>
+                      </CardContent>
+                      <CardFooter className="flex items-center justify-between gap-3 px-6 pb-6">
+                        <Button
+                          className={`w-full bg-[#6B3E26] text-[#F5F5F5] transition hover:bg-[#7b4a30] active:scale-[0.98] ${isAdding ? "animate-pulse" : ""}`}
+                          onClick={() => handleAddToCart(product.id)}
+                          disabled={isAdding}
+                        >
+                          {isAdding ? "Adicionando..." : "Adicionar ao carrinho"}
+                        </Button>
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="border-[#6B3E26] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
+                        >
+                          <Link to={`/produto/${product.id}`}>Ver produto</Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  )
+                })}
           </div>
         </section>
       </main>
