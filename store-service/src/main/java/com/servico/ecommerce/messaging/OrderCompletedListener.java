@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 import com.ecommerce.events.OrderCompletedEvent;
 import com.servico.ecommerce.services.ProductService;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,16 +20,21 @@ public class OrderCompletedListener {
     public void handle(OrderCompletedEvent event) {
         log.info("Order completed received for order {}", event.orderId());
 
-        if (event.productId() == null || event.quantity() == null) {
+        if (event.productIds() == null || event.productIds().isEmpty()) {
             log.warn("Missing product data for order {}", event.orderId());
             return;
         }
 
-        try {
-            productService.decreaseQuantity(event.productId(), event.quantity());
-            log.info("Inventory updated for product {}", event.productId());
-        } catch (EntityNotFoundException ex) {
-            log.warn("Product {} not found for order {}", event.productId(), event.orderId());
-        }
+        event.productIds().stream()
+            .filter(productId -> productId != null)
+            .collect(java.util.stream.Collectors.groupingBy(productId -> productId, java.util.stream.Collectors.counting()))
+            .forEach((productId, count) -> {
+                try {
+                    productService.decreaseQuantity(productId, Math.toIntExact(count));
+                    log.info("Inventory updated for product {}", productId);
+                } catch (jakarta.persistence.EntityNotFoundException ex) {
+                    log.warn("Product {} not found for order {}", productId, event.orderId());
+                }
+            });
     }
 }

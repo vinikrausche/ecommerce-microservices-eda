@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import Skeleton from "@/components/Skeleton"
 import { placeholderImage } from "@/data/products"
 import { fetchProductById, type ApiProduct } from "@/services/api"
+import { resolveUserId } from "@/services/cart"
+import { checkoutOrder, type PaymentMethod } from "@/services/orders"
 import { clearStoredToken, getStoredToken } from "@/services/users"
 import { useCart } from "@/hooks/use-cart"
 import { useToast } from "@/hooks/use-toast"
@@ -55,11 +57,13 @@ type CartItem = ApiProduct & { quantity: number }
 
 export default function CartPage() {
   const navigate = useNavigate()
-  const { cart, count: cartCount } = useCart()
+  const { cart, count: cartCount, updateCart } = useCart()
   const { toast } = useToast()
   const [items, setItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("PIX")
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [authToken, setAuthToken] = useState<string | null>(() =>
     getStoredToken()
   )
@@ -143,12 +147,31 @@ export default function CartPage() {
     [items]
   )
 
-  const handleCheckout = () => {
-    if (cartCount === 0) return
-    toast({
-      title: "Checkout em breve",
-      description: "O fluxo de pagamento ainda esta sendo finalizado.",
-    })
+  const handleCheckout = async () => {
+    if (cartCount === 0 || loading || loadError || checkoutLoading) return
+
+    setCheckoutLoading(true)
+    try {
+      const response = await checkoutOrder({
+        userId: resolveUserId(),
+        productIds: cart.items,
+        amount: total,
+        paymentMethod,
+      })
+      toast({
+        title: "Pedido criado",
+        description: `Pedido #${response.orderId} enviado para pagamento.`,
+      })
+      updateCart({ id: cart.id, items: [] })
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Erro no checkout",
+        description: "Nao foi possivel finalizar a compra agora.",
+      })
+    } finally {
+      setCheckoutLoading(false)
+    }
   }
 
   return (
@@ -329,12 +352,41 @@ export default function CartPage() {
                   <span>{formatPrice(total)}</span>
                 </div>
               </div>
+              <div className="mt-6 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#D8CFC4]">
+                  Pagamento
+                </p>
+                <div className="space-y-2 text-sm text-[#D8CFC4]/80">
+                  {[
+                    { value: "PIX", label: "PIX" },
+                    { value: "CREDIT_CARD", label: "Cartao de credito" },
+                    { value: "DEBIT_CARD", label: "Cartao de debito" },
+                  ].map((method) => (
+                    <label
+                      key={method.value}
+                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#2a2a2a] bg-[#121212] px-4 py-3 hover:border-[#6B3E26]"
+                    >
+                      <input
+                        type="radio"
+                        name="payment-method"
+                        value={method.value}
+                        checked={paymentMethod === method.value}
+                        onChange={() =>
+                          setPaymentMethod(method.value as PaymentMethod)
+                        }
+                        className="accent-[#6B3E26]"
+                      />
+                      <span>{method.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
               <Button
                 className="mt-6 w-full bg-[#6B3E26] text-[#F5F5F5] hover:bg-[#7b4a30]"
                 onClick={handleCheckout}
-                disabled={cartCount === 0}
+                disabled={cartCount === 0 || loading || loadError || checkoutLoading}
               >
-                Finalizar compra
+                {checkoutLoading ? "Finalizando..." : "Finalizar compra"}
               </Button>
               <Button
                 asChild

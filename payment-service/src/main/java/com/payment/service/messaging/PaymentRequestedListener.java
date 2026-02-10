@@ -30,14 +30,13 @@ public class PaymentRequestedListener {
         PaymentApprovedEvent approvedEvent = new PaymentApprovedEvent(
             event.orderId(),
             event.userId(),
-            event.productId(),
-            event.quantity(),
+            event.productIds(),
             event.amount(),
             approved,
             Instant.now()
         );
 
         log.info("Payment approved for order {}", event.orderId());
-        kafkaTemplate.send(paymentApprovedTopic, event.orderId(), approvedEvent);
+        kafkaTemplate.send(paymentApprovedTopic, String.valueOf(event.orderId()), approvedEvent);
     }
 }

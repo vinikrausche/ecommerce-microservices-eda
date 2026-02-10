@@ -31,7 +31,7 @@ public class AsaasCustomer {
     private Long id;
 
     @Column(name = "asaas_id", nullable = false)
-    private String asaasId;
+    private String customerId;
 
     @Column(name = "users_id", nullable = false)
     private Long userId;

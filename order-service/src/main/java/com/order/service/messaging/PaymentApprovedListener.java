@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 import com.ecommerce.events.OrderCompletedEvent;
 import com.ecommerce.events.PaymentApprovedEvent;
+import com.order.service.enums.OrderStatus;
+import com.order.service.services.OrderService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,25 +21,29 @@ import lombok.extern.slf4j.Slf4j;
 public class PaymentApprovedListener {
 
     private final KafkaTemplate<String, OrderCompletedEvent> kafkaTemplate;
+    private final OrderService orderService;
 
     @Value("${app.kafka.topics.order-completed}")
     private String orderCompletedTopic;
 
     @KafkaListener(topics = "${app.kafka.topics.payment-approved}")
     public void handle(PaymentApprovedEvent event) {
-        String status = event.approved() ? "PAYMENT_APPROVED" : "PAYMENT_DECLINED";
+        OrderStatus status = event.approved()
+            ? OrderStatus.PAYMENT_APPROVED
+            : OrderStatus.PAYMENT_DECLINED;
+
+        orderService.updateStatus(event.orderId(), status);
 
         OrderCompletedEvent completedEvent = new OrderCompletedEvent(
             event.orderId(),
             event.userId(),
-            event.productId(),
-            event.quantity(),
+            event.productIds(),
             event.amount(),
-            status,
+            status.name(),
             Instant.now()
         );
 
-        log.info("Payment processed for order {} with status {}", event.orderId(), status);
-        kafkaTemplate.send(orderCompletedTopic, event.orderId(), completedEvent);
+        log.info("Payment processed for order {} with status {}", event.orderId(), status.name());
+        kafkaTemplate.send(orderCompletedTopic, String.valueOf(event.orderId()), completedEvent);
     }
 }

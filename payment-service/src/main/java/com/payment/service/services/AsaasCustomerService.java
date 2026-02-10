@@ -27,13 +27,13 @@ public class AsaasCustomerService {
 
     public AsaasCustomer saveFrom(CustomerCreationRequestedEvent event, CreateCustomerResponse response) {
         if (response.id() != null) {
-            var existing = repository.findByAsaasId(response.id());
+            var existing = repository.findByCustomerId(response.id());
             if (existing.isPresent()) {
                 return existing.get();
             }
         }
         AsaasCustomer customer = new AsaasCustomer();
-        customer.setAsaasId(response.id());
+        customer.setCustomerId(response.id());
         customer.setUserId(event.userId());
         customer.setName(resolveName(event, response));
         customer.setEmail(resolveEmail(event, response));

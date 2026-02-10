@@ -8,7 +8,7 @@ import com.payment.service.entities.AsaasCustomer;
 
 public interface AsaasCustomerRepository extends JpaRepository<AsaasCustomer, Long> {
     boolean existsByUserId(Long userId);
-    boolean existsByAsaasId(String asaasId);
+    boolean existsByCustomerId(String customerId);
     Optional<AsaasCustomer> findByUserId(Long userId);
-    Optional<AsaasCustomer> findByAsaasId(String asaasId);
+    Optional<AsaasCustomer> findByCustomerId(String customerId);
 }

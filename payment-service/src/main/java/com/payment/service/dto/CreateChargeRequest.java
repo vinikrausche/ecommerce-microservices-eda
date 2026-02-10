@@ -7,15 +7,17 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.antlr.v4.runtime.misc.NotNull;
+
 @JsonInclude(JsonInclude.Include.NON_NULL) /*
 !DO NOT SEND NULL FIELDS */
 public record CreateChargeRequest(
-        String customer,
-        BillingType billingType,
-        BigDecimal value,
+       @NotNull  String customer,
+       @NotNull BillingType billingType,
+       @NotNull BigDecimal value,
 
         @JsonFormat(pattern = "yyyy-MM-dd")
-        LocalDate dueDate,
+        @NotNull LocalDate dueDate,
 
         String description,
         String externalReference,
