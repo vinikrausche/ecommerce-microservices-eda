@@ -6,6 +6,7 @@ import { placeholderImage } from "@/data/products"
 import { fetchProductById, type ApiProduct } from "@/services/api"
 import { clearStoredToken, getStoredToken } from "@/services/users"
 import { useCart } from "@/hooks/use-cart"
+import { useToast } from "@/hooks/use-toast"
 
 const formatPrice = (value: number) =>
   new Intl.NumberFormat("pt-BR", {
@@ -59,8 +60,10 @@ export default function ProductPage() {
     getStoredToken()
   )
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [buyingNow, setBuyingNow] = useState(false)
   const userMenuRef = useRef<HTMLDivElement | null>(null)
-  const { count: cartCount } = useCart()
+  const { count: cartCount, addItem } = useCart()
+  const { toast } = useToast()
 
   useEffect(() => {
     if (!id) return
@@ -108,6 +111,34 @@ export default function ProductPage() {
 
   const handleOpenLogin = () => {
     navigate("/", { state: { openLogin: true } })
+  }
+
+  const handleBuyNow = async () => {
+    if (!product || loading || loadError || buyingNow) return
+
+    const productId = Number(product.id)
+    if (!Number.isFinite(productId)) {
+      toast({
+        variant: "destructive",
+        title: "Produto invalido",
+        description: "Nao foi possivel iniciar a compra agora.",
+      })
+      return
+    }
+
+    setBuyingNow(true)
+    try {
+      await addItem(productId)
+      navigate("/carrinho")
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Erro ao iniciar compra",
+        description: "Nao foi possivel adicionar o produto ao carrinho agora.",
+      })
+    } finally {
+      setBuyingNow(false)
+    }
   }
 
   const photos =
@@ -274,9 +305,10 @@ export default function ProductPage() {
             </div>
             <Button
               className="mt-6 w-full bg-[#6B3E26] text-[#F5F5F5] hover:bg-[#7b4a30]"
-              disabled={loading || loadError}
+              onClick={handleBuyNow}
+              disabled={loading || loadError || buyingNow}
             >
-              Comprar agora
+              {buyingNow ? "Indo para o carrinho..." : "Comprar agora"}
             </Button>
           </div>
         </section>

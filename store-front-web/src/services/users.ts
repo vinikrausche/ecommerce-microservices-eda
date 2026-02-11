@@ -51,14 +51,46 @@ export function getStoredToken(): string | null {
   return window.localStorage.getItem(TOKEN_STORAGE_KEY)
 }
 
+function extractUserIdFromToken(token: string): number | null {
+  if (typeof window === "undefined") return null
+  const parts = token.split(".")
+  if (parts.length < 2) return null
+
+  try {
+    const payloadBase64 = parts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(parts[1].length / 4) * 4, "=")
+    const payloadJson = window.atob(payloadBase64)
+    const payload = JSON.parse(payloadJson) as { userId?: unknown }
+    const claim = payload.userId
+
+    if (typeof claim === "number" && Number.isFinite(claim)) {
+      return claim
+    }
+    if (typeof claim === "string" && claim.trim().length > 0) {
+      const parsed = Number(claim)
+      return Number.isFinite(parsed) ? parsed : null
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 export function storeToken(token: string): void {
   if (typeof window === "undefined") return
   window.localStorage.setItem(TOKEN_STORAGE_KEY, token)
+  const userId = extractUserIdFromToken(token)
+  if (userId !== null) {
+    window.localStorage.setItem(USER_ID_STORAGE_KEY, String(userId))
+  }
 }
 
 export function clearStoredToken(): void {
   if (typeof window === "undefined") return
   window.localStorage.removeItem(TOKEN_STORAGE_KEY)
+  window.localStorage.removeItem(USER_ID_STORAGE_KEY)
 }
 
 export function storeUserId(id: number): void {

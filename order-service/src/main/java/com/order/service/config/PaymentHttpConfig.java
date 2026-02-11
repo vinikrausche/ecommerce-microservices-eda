@@ -17,7 +17,7 @@ public class PaymentHttpConfig {
         @Value("${payment.base-url}") String baseUrl, @Value("${payment.api-key}") String apiKey) {
         return builder
         .baseUrl(baseUrl)
-        .defaultHeader("access_token", apiKey, null)
+        .defaultHeader("access_token", apiKey)
         .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
         .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
         .build();

@@ -37,6 +37,15 @@ public class Bill {
     @Column(name = "date_created", nullable = false)
     private LocalDate dateCreated;
 
-    @Column(name = "invoice_url")
+    @Column(name = "invoice_url", columnDefinition = "TEXT")
     private String invoiceUrl;
+
+    @Column(name = "payment_link", columnDefinition = "TEXT")
+    private String paymentLink;
+
+    @Column(name = "pix_qr_code_image", columnDefinition = "TEXT")
+    private String pixQrCodeImage;
+
+    @Column(name = "pix_copy_paste", columnDefinition = "TEXT")
+    private String pixCopyPaste;
 }

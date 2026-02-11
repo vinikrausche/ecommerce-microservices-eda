@@ -8,6 +8,7 @@ import com.payment.service.dto.CreateChargeRequest;
 import com.payment.service.dto.CreateChargeResponse;
 import com.payment.service.dto.CreateCustomerRequest;
 import com.payment.service.dto.CreateCustomerResponse;
+import com.payment.service.dto.PixQrCodeResponse;
 
 @Component
 public class AsaasClient {
@@ -32,5 +33,12 @@ public class AsaasClient {
         .body(request)
         .retrieve()
         .toEntity(CreateCustomerResponse.class);
+    }
+
+    public final ResponseEntity<PixQrCodeResponse> getPixQrCode(String paymentId) {
+        return asaas.get()
+        .uri("/v3/payments/{id}/pixQrCode", paymentId)
+        .retrieve()
+        .toEntity(PixQrCodeResponse.class);
     }
 }

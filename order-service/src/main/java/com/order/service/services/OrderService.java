@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.order.service.entities.Order;
 import com.order.service.enums.OrderStatus;
+import com.order.service.enums.PaymentMethod;
 import com.order.service.repository.OrdersRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -22,13 +23,31 @@ public class OrderService {
         this.repo = repo;
     }
 
-    public Order createOrder(Long userId, List<Long> productIds, BigDecimal totalPrice) {
+    public Order createOrder(
+        Long userId,
+        List<Long> productIds,
+        BigDecimal totalPrice,
+        PaymentMethod paymentMethod,
+        String paymentId,
+        String customerId,
+        String paymentLink,
+        String invoiceUrl,
+        String pixQrCodeImage,
+        String pixCopyPaste
+    ) {
         Order order = Order.builder()
             .userId(userId)
             .productIds(productIds)
             .totalPrice(totalPrice)
             .createdAt(Instant.now())
-            .status(OrderStatus.PAYMENT_REQUESTED)
+            .paymentMethod(paymentMethod)
+            .paymentId(paymentId)
+            .customerId(customerId)
+            .paymentLink(paymentLink)
+            .invoiceUrl(invoiceUrl)
+            .pixQrCodeImage(pixQrCodeImage)
+            .pixCopyPaste(pixCopyPaste)
+            .status(OrderStatus.PENDING)
             .build();
 
         return repo.save(order);

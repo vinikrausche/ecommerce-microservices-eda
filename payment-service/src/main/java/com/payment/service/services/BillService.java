@@ -11,6 +11,7 @@ import com.payment.service.dto.CreateBillRequest;
 import com.payment.service.dto.CreateBillResponse;
 import com.payment.service.dto.CreateChargeRequest;
 import com.payment.service.dto.CreateChargeResponse;
+import com.payment.service.dto.PixQrCodeResponse;
 import com.payment.service.entities.Bill;
 import com.payment.service.repository.AsaasCustomerRepository;
 import com.payment.service.repository.BillRepository;
@@ -52,6 +53,25 @@ public class BillService {
         }
 
         CreateChargeResponse body = response.getBody();
+        String invoiceUrl = body.invoiceUrl();
+        String paymentLink = body.paymentLink();
+        String pixQrCodeImage = null;
+        String pixCopyPaste = null;
+
+        if (request.billingType() == CreateBillRequest.PaymentMethod.PIX) {
+            var pixResponse = asaasClient.getPixQrCode(body.id());
+            if (!pixResponse.getStatusCode().is2xxSuccessful() || pixResponse.getBody() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to retrieve PIX QR Code on Asaas");
+            }
+            PixQrCodeResponse pixBody = pixResponse.getBody();
+            pixQrCodeImage = toDataImage(pixBody.encodedImage());
+            pixCopyPaste = pixBody.payload();
+            if (pixQrCodeImage != null && !pixQrCodeImage.isBlank()) {
+                // For PIX, invoice content can be the QR image itself.
+                invoiceUrl = pixQrCodeImage;
+            }
+        }
+
         String billCustomerId = body.customer() == null || body.customer().isBlank()
             ? customerId
             : body.customer();
@@ -61,10 +81,21 @@ public class BillService {
         bill.setCustomerId(billCustomerId);
         bill.setStatus(body.status());
         bill.setDateCreated(body.dateCreated());
-        bill.setInvoiceUrl(body.invoiceUrl());
+        bill.setInvoiceUrl(invoiceUrl);
+        bill.setPaymentLink(paymentLink);
+        bill.setPixQrCodeImage(pixQrCodeImage);
+        bill.setPixCopyPaste(pixCopyPaste);
         billRepository.save(bill);
 
-        return new CreateBillResponse(body.id(), billCustomerId, body.dateCreated(), body.invoiceUrl());
+        return new CreateBillResponse(
+            body.id(),
+            billCustomerId,
+            body.dateCreated(),
+            invoiceUrl,
+            paymentLink,
+            pixQrCodeImage,
+            pixCopyPaste
+        );
     }
 
     private static CreateChargeRequest.BillingType mapBillingType(CreateBillRequest.PaymentMethod method) {
@@ -75,8 +106,13 @@ public class BillService {
         };
     }
 
-
-    private static void handlePaymentMethod(){
-
+    private static String toDataImage(String encodedImage) {
+        if (encodedImage == null || encodedImage.isBlank()) {
+            return null;
+        }
+        if (encodedImage.startsWith("data:")) {
+            return encodedImage;
+        }
+        return "data:image/png;base64," + encodedImage;
     }
 }

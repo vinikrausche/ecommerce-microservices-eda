@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 
 import com.order.service.enums.OrderStatus;
+import com.order.service.enums.PaymentMethod;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -49,6 +50,28 @@ public class Order {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", nullable = false)
+    private PaymentMethod paymentMethod;
+
+    @Column(name = "payment_id", nullable = false)
+    private String paymentId;
+
+    @Column(name = "customer_id", nullable = false)
+    private String customerId;
+
+    @Column(name = "payment_link", columnDefinition = "TEXT")
+    private String paymentLink;
+
+    @Column(name = "invoice_url", columnDefinition = "TEXT")
+    private String invoiceUrl;
+
+    @Column(name = "pix_qr_code_image", columnDefinition = "TEXT")
+    private String pixQrCodeImage;
+
+    @Column(name = "pix_copy_paste", columnDefinition = "TEXT")
+    private String pixCopyPaste;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

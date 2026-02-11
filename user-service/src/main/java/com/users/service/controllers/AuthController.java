@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.users.service.dto.LoginRequest;
 import com.users.service.dto.UserResponse;
-import com.users.service.entities.User;
 import com.users.service.services.AuthService;
 import com.users.service.services.UserService;
 
@@ -34,7 +33,7 @@ public class AuthController {
        UserResponse user =  this.userService.getByEmail(request.email());
 
        if(user.password().equals(request.password())) {
-           String token = this.authService.generateToken(user.email());
+           String token = this.authService.generateToken(user.id(), user.email());
            return ResponseEntity.ok(token);
        }
         

@@ -6,5 +6,8 @@ public record CreateBillResponse(
     String id,
     String customerId,
     LocalDate dateCreated,
-    String invoiceUrl
+    String invoiceUrl,
+    String paymentLink,
+    String pixQrCodeImage,
+    String pixCopyPaste
 ) {}

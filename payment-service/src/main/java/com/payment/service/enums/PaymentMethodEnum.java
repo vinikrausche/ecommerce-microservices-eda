@@ -1,7 +1,7 @@
 package com.payment.service.enums;
 
 
-enum PaymentMethod {
+public enum PaymentMethodEnum {
     CREDIT_CARD,
     PIX,
     BOLETO

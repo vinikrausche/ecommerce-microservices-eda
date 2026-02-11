@@ -2,11 +2,22 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import Skeleton from "@/components/Skeleton"
 import { placeholderImage } from "@/data/products"
 import { fetchProductById, type ApiProduct } from "@/services/api"
 import { resolveUserId } from "@/services/cart"
-import { checkoutOrder, type PaymentMethod } from "@/services/orders"
+import {
+  checkoutOrder,
+  type CheckoutResponse,
+  type PaymentMethod,
+} from "@/services/orders"
 import { clearStoredToken, getStoredToken } from "@/services/users"
 import { useCart } from "@/hooks/use-cart"
 import { useToast } from "@/hooks/use-toast"
@@ -23,6 +34,32 @@ const normalizePhoto = (photo: string) => {
   }
   return `data:image/webp;base64,${photo}`
 }
+
+const normalizeQrCodeImage = (value: string | null | undefined) => {
+  if (!value) return null
+  if (value.startsWith("data:") || value.startsWith("http")) {
+    return value
+  }
+  return `data:image/png;base64,${value}`
+}
+
+const resolvePaymentLink = (response: CheckoutResponse) =>
+  response.paymentLink ?? response.invoiceUrl ?? null
+
+const resolvePixQrCodeImage = (response: CheckoutResponse) =>
+  normalizeQrCodeImage(
+    response.pixQrCodeImage ??
+      response.pixQrCodeImageUrl ??
+      response.qrCodeImage ??
+      response.pixQrCodeBase64 ??
+      response.qrCodeBase64
+  )
+
+const resolvePixCode = (response: CheckoutResponse) =>
+  response.pixCopyPaste ?? response.pixQrCode ?? response.qrCode ?? null
+
+const isExternalPaymentLink = (value: string | null): value is string =>
+  !!value && (value.startsWith("http://") || value.startsWith("https://"))
 
 const IconCart = () => (
   <svg
@@ -64,6 +101,10 @@ export default function CartPage() {
   const [loadError, setLoadError] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("PIX")
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [pixDialogOpen, setPixDialogOpen] = useState(false)
+  const [pixQrCodeImage, setPixQrCodeImage] = useState<string | null>(null)
+  const [pixCode, setPixCode] = useState<string | null>(null)
+  const [pixPaymentLink, setPixPaymentLink] = useState<string | null>(null)
   const [authToken, setAuthToken] = useState<string | null>(() =>
     getStoredToken()
   )
@@ -147,6 +188,23 @@ export default function CartPage() {
     [items]
   )
 
+  const handleCopyPixCode = async () => {
+    if (!pixCode) return
+    try {
+      await navigator.clipboard.writeText(pixCode)
+      toast({
+        title: "Codigo PIX copiado",
+        description: "Cole o codigo no app do seu banco para pagar.",
+      })
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Nao foi possivel copiar",
+        description: "Copie o codigo manualmente.",
+      })
+    }
+  }
+
   const handleCheckout = async () => {
     if (cartCount === 0 || loading || loadError || checkoutLoading) return
 
@@ -158,9 +216,35 @@ export default function CartPage() {
         amount: total,
         paymentMethod,
       })
+
+      const paymentLink = resolvePaymentLink(response)
+      const pixImage = resolvePixQrCodeImage(response)
+      const pixCopyPaste = resolvePixCode(response)
+
+      if (paymentMethod === "PIX") {
+        setPixQrCodeImage(pixImage)
+        setPixCode(pixCopyPaste)
+        setPixPaymentLink(isExternalPaymentLink(paymentLink) ? paymentLink : null)
+        setPixDialogOpen(true)
+      } else if (isExternalPaymentLink(paymentLink)) {
+        const paymentWindow = window.open(
+          paymentLink,
+          "_blank",
+          "noopener,noreferrer"
+        )
+        if (!paymentWindow) {
+          window.location.assign(paymentLink)
+        }
+      }
+
       toast({
         title: "Pedido criado",
-        description: `Pedido #${response.orderId} enviado para pagamento.`,
+        description:
+          paymentMethod === "PIX"
+            ? `Pedido #${response.orderId} criado. Use o QR Code para pagar.`
+            : paymentLink
+              ? `Pedido #${response.orderId} criado. Abrindo o pagamento em nova aba.`
+              : `Pedido #${response.orderId} criado. Link de pagamento ainda nao disponivel.`,
       })
       updateCart({ id: cart.id, items: [] })
     } catch {
@@ -399,6 +483,64 @@ export default function CartPage() {
           </div>
         )}
       </main>
+
+      <Dialog open={pixDialogOpen} onOpenChange={setPixDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pagamento via PIX</DialogTitle>
+            <DialogDescription>
+              Escaneie o QR Code no app do banco para concluir o pedido.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {pixQrCodeImage ? (
+              <div className="mx-auto w-fit rounded-2xl border border-[#2a2a2a] bg-white p-3">
+                <img
+                  src={pixQrCodeImage}
+                  alt="QR Code PIX"
+                  className="h-56 w-56 object-contain"
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-[#D8CFC4]/80">
+                QR Code ainda nao retornado pelo backend.
+              </p>
+            )}
+
+            {pixCode ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8CFC4]">
+                  Codigo copia e cola
+                </p>
+                <div className="max-h-28 overflow-auto rounded-xl border border-[#2a2a2a] bg-[#101010] p-3 text-xs text-[#D8CFC4]/90">
+                  {pixCode}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-[#6B3E26] text-[#F5F5F5] hover:bg-[#6B3E26] hover:text-[#F5F5F5]"
+                  onClick={handleCopyPixCode}
+                >
+                  Copiar codigo PIX
+                </Button>
+              </div>
+            ) : null}
+
+            {pixPaymentLink ? (
+              <Button
+                asChild
+                variant="outline"
+                className="w-full border-[#2a2a2a] text-[#F5F5F5] hover:bg-[#2a2a2a]"
+              >
+                <a href={pixPaymentLink} target="_blank" rel="noreferrer">
+                  Abrir cobranca em nova aba
+                </a>
+              </Button>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
