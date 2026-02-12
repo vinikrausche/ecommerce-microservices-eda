@@ -1,0 +1,3 @@
+ALTER TABLE IF EXISTS orders DROP CONSTRAINT IF EXISTS orders_status_check;
+ALTER TABLE IF EXISTS orders
+  ADD CONSTRAINT orders_status_check CHECK (status IN ('PENDING', 'COMPLETED'));
