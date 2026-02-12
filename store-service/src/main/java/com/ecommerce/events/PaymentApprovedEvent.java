@@ -9,6 +9,7 @@ public record PaymentApprovedEvent(
     Long userId,
     List<Long> productIds,
     BigDecimal amount,
+    String paymentId,
     boolean approved,
     Instant occurredAt
 ) {}

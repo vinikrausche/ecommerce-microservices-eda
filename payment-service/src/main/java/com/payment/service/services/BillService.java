@@ -1,12 +1,20 @@
 package com.payment.service.services;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Locale;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.ecommerce.events.PaymentApprovedEvent;
 import com.payment.service.client.AsaasClient;
+import com.payment.service.dto.AsaasWebhookRequest;
 import com.payment.service.dto.CreateBillRequest;
 import com.payment.service.dto.CreateBillResponse;
 import com.payment.service.dto.CreateChargeRequest;
@@ -17,14 +25,20 @@ import com.payment.service.repository.AsaasCustomerRepository;
 import com.payment.service.repository.BillRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BillService {
 
     private final AsaasClient asaasClient;
     private final AsaasCustomerRepository asaasCustomerRepository;
     private final BillRepository billRepository;
+    private final KafkaTemplate<String, PaymentApprovedEvent> kafkaTemplate;
+
+    @Value("${app.kafka.topics.payment-approved}")
+    private String paymentApprovedTopic;
 
     public CreateBillResponse create(CreateBillRequest request) {
         var customer = asaasCustomerRepository.findByUserId(request.userId())
@@ -86,6 +100,7 @@ public class BillService {
         bill.setPixQrCodeImage(pixQrCodeImage);
         bill.setPixCopyPaste(pixCopyPaste);
         billRepository.save(bill);
+        publishApprovedIfNeeded(bill.getPaymentId(), request.value(), bill.getStatus());
 
         return new CreateBillResponse(
             body.id(),
@@ -96,6 +111,65 @@ public class BillService {
             pixQrCodeImage,
             pixCopyPaste
         );
+    }
+
+    @Transactional
+    public void processWebhook(AsaasWebhookRequest request) {
+        if (request == null || request.payment() == null || request.payment().id() == null || request.payment().id().isBlank()) {
+            log.warn("Ignoring webhook payload without payment id");
+            return;
+        }
+
+        String paymentId = request.payment().id().trim();
+        Bill bill = billRepository.findByPaymentId(paymentId)
+            .orElse(null);
+        if (bill == null) {
+            log.warn("Ignoring webhook for unknown paymentId {}", paymentId);
+            return;
+        }
+
+        String previousStatus = bill.getStatus();
+        if (request.payment().status() != null && !request.payment().status().isBlank()) {
+            bill.setStatus(request.payment().status().trim());
+        }
+
+        if (!isApprovedStatus(previousStatus) && isApprovedStatus(bill.getStatus())) {
+            publishPaymentApproved(paymentId, request.payment().value());
+        }
+    }
+
+    private void publishApprovedIfNeeded(String paymentId, BigDecimal amount, String status) {
+        if (!isApprovedStatus(status)) {
+            return;
+        }
+        publishPaymentApproved(paymentId, amount);
+    }
+
+    private void publishPaymentApproved(String paymentId, BigDecimal amount) {
+        if (paymentId == null || paymentId.isBlank()) {
+            return;
+        }
+        PaymentApprovedEvent event = new PaymentApprovedEvent(
+            null,
+            null,
+            null,
+            amount,
+            paymentId,
+            true,
+            Instant.now()
+        );
+        kafkaTemplate.send(paymentApprovedTopic, paymentId, event);
+        log.info("Payment approved event published for paymentId {}", paymentId);
+    }
+
+    private static boolean isApprovedStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return false;
+        }
+        String normalized = status.trim().toUpperCase(Locale.ROOT);
+        return normalized.equals("RECEIVED")
+            || normalized.equals("CONFIRMED")
+            || normalized.equals("RECEIVED_IN_CASH");
     }
 
     private static CreateChargeRequest.BillingType mapBillingType(CreateBillRequest.PaymentMethod method) {

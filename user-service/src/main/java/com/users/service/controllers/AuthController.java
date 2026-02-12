@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.users.service.dto.LoginRequest;
-import com.users.service.dto.UserResponse;
+import com.users.service.entities.User;
 import com.users.service.services.AuthService;
 import com.users.service.services.UserService;
 
@@ -30,10 +30,10 @@ public class AuthController {
     @PostMapping("")
     public ResponseEntity<String> login(@Valid @RequestBody LoginRequest request) {
 
-       UserResponse user =  this.userService.getByEmail(request.email());
+       User user = this.userService.requireUserEntityByEmail(request.email());
 
-       if(user.password().equals(request.password())) {
-           String token = this.authService.generateToken(user.id(), user.email());
+       if(user.getPassword().equals(request.password())) {
+           String token = this.authService.generateToken(user.getId(), user.getEmail());
            return ResponseEntity.ok(token);
        }
         

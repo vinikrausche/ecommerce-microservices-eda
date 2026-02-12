@@ -3,6 +3,7 @@ package com.payment.service.config;
 import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -20,6 +21,15 @@ public class ApiKeyFilter extends OncePerRequestFilter {
 
     ApiKeyFilter(@Value("${payment.api-key}") String expectedApiKey) {
         this.expectedApiKey = expectedApiKey;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            return true;
+        }
+        String path = request.getServletPath();
+        return "/api/v1/payments/webhook".equals(path);
     }
 
     @Override

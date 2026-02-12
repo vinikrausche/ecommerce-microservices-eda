@@ -12,7 +12,10 @@ import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 
@@ -25,6 +28,13 @@ public class CartController {
 
     CartController(CartService service){
         this.service = service;
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<AddProductCartResponse> getActiveByUser(@PathVariable Long userId) {
+        return service.findActiveByUserId(userId)
+            .map(cart -> ResponseEntity.ok(new AddProductCartResponse(cart.getId(), cart.getCartItems())))
+            .orElseGet(() -> ResponseEntity.ok(new AddProductCartResponse(null, java.util.List.of())));
     }
 
     @PostMapping("")
@@ -52,6 +62,15 @@ public class CartController {
           .body(new AddProductCartResponse(updated.getId(), updated.getCartItems()));
 
 
+    }
+
+    @PutMapping("/{id}/items")
+    public ResponseEntity<AddProductCartResponse> replaceItems(
+        @PathVariable Long id,
+        @RequestBody AddProductCartRequest dto
+    ) {
+        Cart updated = service.replaceItems(id, dto.cart_items());
+        return ResponseEntity.ok(new AddProductCartResponse(updated.getId(), updated.getCartItems()));
     }
 
 }

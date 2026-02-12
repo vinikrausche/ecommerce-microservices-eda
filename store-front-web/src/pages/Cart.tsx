@@ -18,7 +18,11 @@ import {
   type CheckoutResponse,
   type PaymentMethod,
 } from "@/services/orders"
-import { clearStoredToken, getStoredToken } from "@/services/users"
+import {
+  clearStoredToken,
+  getStoredToken,
+  subscribeToAuthUpdates,
+} from "@/services/users"
 import { useCart } from "@/hooks/use-cart"
 import { useToast } from "@/hooks/use-toast"
 
@@ -94,7 +98,7 @@ type CartItem = ApiProduct & { quantity: number }
 
 export default function CartPage() {
   const navigate = useNavigate()
-  const { cart, count: cartCount, updateCart } = useCart()
+  const { cart, count: cartCount, clearCart } = useCart()
   const { toast } = useToast()
   const [items, setItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -110,6 +114,12 @@ export default function CartPage() {
   )
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    return subscribeToAuthUpdates(() => {
+      setAuthToken(getStoredToken())
+    })
+  }, [])
 
   const quantities = useMemo(() => {
     const map = new Map<number, number>()
@@ -177,6 +187,7 @@ export default function CartPage() {
     clearStoredToken()
     setAuthToken(null)
     setIsUserMenuOpen(false)
+    navigate("/", { replace: true })
   }
 
   const handleOpenLogin = () => {
@@ -208,10 +219,16 @@ export default function CartPage() {
   const handleCheckout = async () => {
     if (cartCount === 0 || loading || loadError || checkoutLoading) return
 
+    const userId = resolveUserId()
+    if (userId === null) {
+      navigate("/", { state: { openLogin: true } })
+      return
+    }
+
     setCheckoutLoading(true)
     try {
       const response = await checkoutOrder({
-        userId: resolveUserId(),
+        userId,
         productIds: cart.items,
         amount: total,
         paymentMethod,
@@ -246,7 +263,7 @@ export default function CartPage() {
               ? `Pedido #${response.orderId} criado. Abrindo o pagamento em nova aba.`
               : `Pedido #${response.orderId} criado. Link de pagamento ainda nao disponivel.`,
       })
-      updateCart({ id: cart.id, items: [] })
+      await clearCart()
     } catch {
       toast({
         variant: "destructive",

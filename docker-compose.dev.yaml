@@ -86,6 +86,14 @@ services:
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: user123
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    develop:
+      watch:
+        - action: rebuild
+          path: ./user-service/src
+        - action: rebuild
+          path: ./user-service/pom.xml
+        - action: rebuild
+          path: ./user-service/Dockerfile
 
   store-service:
     build:
@@ -106,6 +114,14 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-admin}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-admin}
+    develop:
+      watch:
+        - action: rebuild
+          path: ./store-service/src
+        - action: rebuild
+          path: ./store-service/pom.xml
+        - action: rebuild
+          path: ./store-service/Dockerfile
 
   order-service:
     env_file:
@@ -126,6 +142,14 @@ services:
       SPRING_DATASOURCE_PASSWORD: order123
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    develop:
+      watch:
+        - action: rebuild
+          path: ./order-service/src
+        - action: rebuild
+          path: ./order-service/pom.xml
+        - action: rebuild
+          path: ./order-service/Dockerfile
 
   payment-service:
     env_file:
@@ -146,6 +170,14 @@ services:
       SPRING_DATASOURCE_USERNAME: payment
       SPRING_DATASOURCE_PASSWORD: payment123
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    develop:
+      watch:
+        - action: rebuild
+          path: ./payment-service/src
+        - action: rebuild
+          path: ./payment-service/pom.xml
+        - action: rebuild
+          path: ./payment-service/Dockerfile
    
 
   notification-service:
@@ -160,6 +192,14 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: dev
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    develop:
+      watch:
+        - action: rebuild
+          path: ./notification-service/src
+        - action: rebuild
+          path: ./notification-service/pom.xml
+        - action: rebuild
+          path: ./notification-service/Dockerfile
 
 volumes:
   user_pgdata:

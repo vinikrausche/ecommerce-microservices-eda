@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -27,6 +28,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
         log.warn("Data integrity violation: {}", ex.getMessage());
         return buildResponse(HttpStatus.CONFLICT, ex, request);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
+        int statusCode = ex.getStatusCode().value();
+        HttpStatus status = HttpStatus.resolve(statusCode);
+        String reasonPhrase = status == null ? ex.getStatusCode().toString() : status.getReasonPhrase();
+        String message = ex.getReason() == null ? ex.getMessage() : ex.getReason();
+        ErrorResponse payload = new ErrorResponse(
+            Instant.now(),
+            statusCode,
+            reasonPhrase,
+            message,
+            request.getRequestURI()
+        );
+        return ResponseEntity.status(statusCode).body(payload);
     }
 
     @ExceptionHandler(Exception.class)

@@ -1,5 +1,6 @@
 package com.order.service.client;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -11,7 +12,7 @@ public class PaymentClient {
 
     private final RestClient payment;
 
-    PaymentClient(RestClient paymentRestClient) {
+    PaymentClient(@Qualifier("paymentRestClient") RestClient paymentRestClient) {
         this.payment = paymentRestClient;
     }
 

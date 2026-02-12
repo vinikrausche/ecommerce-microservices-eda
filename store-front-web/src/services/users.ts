@@ -31,6 +31,8 @@ export type LoginPayload = {
 
 const TOKEN_STORAGE_KEY = "authToken"
 const USER_ID_STORAGE_KEY = "userId"
+const AUTH_EVENT = "auth:updated"
+const LEGACY_CART_STORAGE_KEY = "cartState"
 
 export const userApi = axios.create({
   baseURL: "http://localhost:8081/api/v1",
@@ -44,6 +46,11 @@ export async function createUser(payload: CreateUserPayload): Promise<UserRespon
 export async function loginUser(payload: LoginPayload): Promise<string> {
   const { data } = await userApi.post<string>("/login", payload)
   return data
+}
+
+function dispatchAuthUpdated(): void {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(new Event(AUTH_EVENT))
 }
 
 export function getStoredToken(): string | null {
@@ -85,17 +92,21 @@ export function storeToken(token: string): void {
   if (userId !== null) {
     window.localStorage.setItem(USER_ID_STORAGE_KEY, String(userId))
   }
+  dispatchAuthUpdated()
 }
 
 export function clearStoredToken(): void {
   if (typeof window === "undefined") return
   window.localStorage.removeItem(TOKEN_STORAGE_KEY)
   window.localStorage.removeItem(USER_ID_STORAGE_KEY)
+  window.localStorage.removeItem(LEGACY_CART_STORAGE_KEY)
+  dispatchAuthUpdated()
 }
 
 export function storeUserId(id: number): void {
   if (typeof window === "undefined") return
   window.localStorage.setItem(USER_ID_STORAGE_KEY, String(id))
+  dispatchAuthUpdated()
 }
 
 export function getStoredUserId(): number | null {
@@ -109,4 +120,15 @@ export function getStoredUserId(): number | null {
 export function clearStoredUserId(): void {
   if (typeof window === "undefined") return
   window.localStorage.removeItem(USER_ID_STORAGE_KEY)
+  dispatchAuthUpdated()
+}
+
+export function subscribeToAuthUpdates(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {}
+  window.addEventListener(AUTH_EVENT, callback)
+  window.addEventListener("storage", callback)
+  return () => {
+    window.removeEventListener(AUTH_EVENT, callback)
+    window.removeEventListener("storage", callback)
+  }
 }

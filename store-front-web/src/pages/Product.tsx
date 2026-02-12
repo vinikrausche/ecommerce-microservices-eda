@@ -4,7 +4,11 @@ import Skeleton from "@/components/Skeleton"
 import { Button } from "@/components/ui/button"
 import { placeholderImage } from "@/data/products"
 import { fetchProductById, type ApiProduct } from "@/services/api"
-import { clearStoredToken, getStoredToken } from "@/services/users"
+import {
+  clearStoredToken,
+  getStoredToken,
+  subscribeToAuthUpdates,
+} from "@/services/users"
 import { useCart } from "@/hooks/use-cart"
 import { useToast } from "@/hooks/use-toast"
 
@@ -66,6 +70,12 @@ export default function ProductPage() {
   const { toast } = useToast()
 
   useEffect(() => {
+    return subscribeToAuthUpdates(() => {
+      setAuthToken(getStoredToken())
+    })
+  }, [])
+
+  useEffect(() => {
     if (!id) return
     let isMounted = true
     setLoading(true)
@@ -107,6 +117,7 @@ export default function ProductPage() {
     clearStoredToken()
     setAuthToken(null)
     setIsUserMenuOpen(false)
+    navigate("/", { replace: true })
   }
 
   const handleOpenLogin = () => {
@@ -130,7 +141,11 @@ export default function ProductPage() {
     try {
       await addItem(productId)
       navigate("/carrinho")
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === "AUTH_REQUIRED") {
+        navigate("/", { state: { openLogin: true } })
+        return
+      }
       toast({
         variant: "destructive",
         title: "Erro ao iniciar compra",

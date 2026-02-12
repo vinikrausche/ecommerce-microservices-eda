@@ -52,9 +52,12 @@ public class UserService {
     }
 
     public UserResponse getByEmail(String email) {
-        User user = repository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        return toResponse(user);
+        return toResponse(requireUserEntityByEmail(email));
+    }
+
+    public User requireUserEntityByEmail(String email) {
+        return repository.findByEmail(email)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     }
 
     public void delete(Long id) {
@@ -109,8 +112,7 @@ public class UserService {
                 user.getZipcode(),
                 user.getNationalId(),
                 user.getPhone(),
-                user.getState(),
-                user.getPassword()
+                user.getState()
         );
     }
 

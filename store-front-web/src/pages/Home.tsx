@@ -28,6 +28,7 @@ import {
   clearStoredToken,
   getStoredToken,
   loginUser,
+  subscribeToAuthUpdates,
   storeToken,
 } from "@/services/users"
 
@@ -94,6 +95,12 @@ export default function HomePage() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const { count: cartCount, addItem } = useCart()
+
+  useEffect(() => {
+    return subscribeToAuthUpdates(() => {
+      setAuthToken(getStoredToken())
+    })
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -171,7 +178,9 @@ export default function HomePage() {
       storeToken(token)
       setAuthToken(token)
       setIsLoginOpen(false)
+      setIsUserMenuOpen(false)
       setLoginPassword("")
+      navigate("/", { replace: true })
     } catch (err) {
       setLoginError("Nao foi possivel entrar. Verifique seus dados.")
     } finally {
@@ -183,6 +192,7 @@ export default function HomePage() {
     clearStoredToken()
     setAuthToken(null)
     setIsUserMenuOpen(false)
+    navigate("/", { replace: true })
   }
 
   const handleAddToCart = async (productId: string) => {
@@ -203,7 +213,16 @@ export default function HomePage() {
         title: "Adicionado ao carrinho",
         description: "O produto foi incluido no seu carrinho.",
       })
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === "AUTH_REQUIRED") {
+        setIsLoginOpen(true)
+        toast({
+          variant: "destructive",
+          title: "Login necessario",
+          description: "Entre na sua conta para adicionar itens ao carrinho.",
+        })
+        return
+      }
       toast({
         variant: "destructive",
         title: "Erro ao adicionar",

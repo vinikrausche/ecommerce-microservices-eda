@@ -21,10 +21,15 @@ Basic event flow:
 
 
 # HOW TO RUN (DEV)
-`./init.bash -dev`
+`./init.bash dev`
+
+# HOT RELOAD / AUTO-REBUILD (DEV)
+`./init.bash dev auto`
+or force watch mode:
+`./init.bash dev watch`
 
 # HOW TO RUN (PROD)
-`./init.bash -prod`
+`./init.bash prod`
 
 
 #  DOCUMENTAÇÃO EM PORTUGUÊS
@@ -45,7 +50,12 @@ Fluxo basico de eventos:
 4) store-service e notification-service consomem `order.completed`
 
 # COMO LIGAR OS CONTAINERS (DEV)
-`./init.bash -dev`
+`./init.bash dev`
+
+# REBUILD AUTOMATICO (DEV)
+`./init.bash dev auto`
+ou para forcar watch:
+`./init.bash dev watch`
 
 # COMO LIGAR OS CONTAINERS (PROD)
-`./init.bash -prod`
+`./init.bash prod`

@@ -13,7 +13,6 @@ public record UserResponse(
         String zipcode,
         @JsonProperty("national_id") String nationalId,
         String phone,
-        String state,
-        String password
+        String state
 ) {
 }
